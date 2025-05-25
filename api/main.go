@@ -5,9 +5,13 @@ import (
 	"errors"
 	"expvar"
 	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
+	"service/app/sdk/debug"
 	"service/foundation/logger"
+	"syscall"
 
 	"github.com/ardanlabs/conf/v3"
 )
@@ -40,6 +44,9 @@ func run(ctx context.Context, log *logger.Logger) error {
 	// Configuration
 	cfg := struct {
 		conf.Version
+		Web struct {
+			DebugHost string `conf:"default:0.0.0.0:3010"`
+		}
 	}{
 		Version: conf.Version{
 			Build: build,
@@ -70,9 +77,23 @@ func run(ctx context.Context, log *logger.Logger) error {
 
 	log.Info(ctx, "startup", "config", out)
 
-	log.BuildInfo(ctx)
-
 	expvar.NewString("build").Set(cfg.Build)
+
+	// -------------------------------------------------------------------------
+	// Start Debug Service
+
+	go func() {
+		log.Info(ctx, "startup", "debug v1 router started", "host", cfg.Web.DebugHost)
+		if err := http.ListenAndServe(cfg.Web.DebugHost, debug.Mux()); err != nil {
+			log.Error(ctx, "shutdown", "status", "debug v1 router closed", "host", cfg.Web.DebugHost, "msg", err)
+		}
+	}()
+
+	// -------------------------------------------------------------------------
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
+	<-shutdown
 
 	return nil
 }
