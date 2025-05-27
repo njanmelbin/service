@@ -103,5 +103,10 @@ dev-logs:
 	kubectl logs --namespace=$(NAMESPACE) -l app=$(SALES_APP) --all-containers=true -f --tail=100 --max-log-requests=6 | go run api/tooling/logfmt/main.go -service=$(SALES_APP)
 
 
-test:
-	curl -i http://localhost:3000/test
+readiness:
+	curl -i http://localhost:3000/v1/readiness
+
+
+liveness:
+	curl -i http://localhost:3000/v1/readiness
+
