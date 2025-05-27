@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"runtime"
 	"service/app/sdk/debug"
+	"service/app/sdk/mux"
 	"service/foundation/logger"
 	"syscall"
 	"time"
@@ -104,7 +105,7 @@ func run(ctx context.Context, log *logger.Logger) error {
 
 	api := http.Server{
 		Addr:         cfg.Web.APIHost,
-		Handler:      nil,
+		Handler:      mux.WebAPI(),
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
 		IdleTimeout:  cfg.Web.IdleTimeout,
