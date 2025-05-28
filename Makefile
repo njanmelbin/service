@@ -28,12 +28,6 @@ dev-brew:
 	brew list kubectl || brew install kubectl
 	brew list kustomize || brew install kustomize
 
-#build:
-#	go build api/servies/sales/main.go
-
-#run:
-#	go run api/servies/sales/main.go
-
 
 # ==============================================================================
 # Metrics and Tracing
@@ -101,7 +95,6 @@ dev-update-apply: build dev-load dev-apply
 
 dev-logs:
 	kubectl logs --namespace=$(NAMESPACE) -l app=$(SALES_APP) --all-containers=true -f --tail=100 --max-log-requests=6 | go run api/tooling/logfmt/main.go -service=$(SALES_APP)
-
 
 readiness:
 	curl -i http://localhost:3000/v1/readiness
