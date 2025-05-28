@@ -1,12 +1,13 @@
 package mux
 
 import (
-	"net/http"
+	"os"
 	"service/app/domain/checkapi"
+	"service/foundation/web"
 )
 
-func WebAPI() *http.ServeMux {
-	mux := http.NewServeMux()
+func WebAPI(shutdown chan os.Signal) *web.App {
+	mux := web.New(shutdown)
 	checkapi.Routes(mux)
 	return mux
 }
