@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-type Handler func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
+type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
 
 type App struct {
 	*http.ServeMux
@@ -21,7 +21,7 @@ func New(shutdown chan os.Signal) *App {
 	}
 }
 
-func (a *App) HandleFunc(pattern string, handler Handler) {
+func (a *App) HandleFunc(pattern string, handler HandlerFunc) {
 
 	h := func(w http.ResponseWriter, r *http.Request) {
 		if err := handler(r.Context(), w, r); err != nil {
