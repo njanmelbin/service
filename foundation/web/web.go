@@ -12,16 +12,20 @@ type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Reques
 type App struct {
 	*http.ServeMux
 	shutdown chan os.Signal
+	mw       []MidFunc
 }
 
-func New(shutdown chan os.Signal) *App {
+func New(shutdown chan os.Signal, mw ...MidFunc) *App {
 	return &App{
 		ServeMux: http.NewServeMux(),
 		shutdown: shutdown,
+		mw:       mw,
 	}
 }
 
-func (a *App) HandleFunc(pattern string, handler HandlerFunc) {
+func (a *App) HandleFunc(pattern string, handler HandlerFunc, mw ...MidFunc) {
+	handler = wrapMiddleware(mw, handler)
+	handler = wrapMiddleware(a.mw, handler)
 
 	h := func(w http.ResponseWriter, r *http.Request) {
 		if err := handler(r.Context(), w, r); err != nil {
