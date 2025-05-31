@@ -12,6 +12,7 @@ import (
 	"service/app/sdk/debug"
 	"service/app/sdk/mux"
 	"service/foundation/logger"
+	"service/foundation/web"
 	"syscall"
 	"time"
 
@@ -26,7 +27,7 @@ func main() {
 	ctx := context.Background()
 
 	traceIDFn := func(ctx context.Context) string {
-		return ""
+		return web.GetTraceID(ctx)
 	}
 	log = logger.New(os.Stdout, logger.LevelInfo, "SALES", traceIDFn)
 
