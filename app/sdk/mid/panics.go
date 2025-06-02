@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"runtime/debug"
 	"service/app/sdk/errs"
+	"service/app/sdk/metrics"
 	"service/foundation/web"
 )
 
@@ -16,7 +17,7 @@ func Panics() web.MidFunc {
 				if rec := recover(); rec != nil {
 					trace := debug.Stack()
 					err = errs.Newf(errs.InternalOnlyLog, "PANIC [%v] TRACE[%s]", rec, string(trace))
-
+					metrics.AddPanics(ctx)
 				}
 			}()
 
