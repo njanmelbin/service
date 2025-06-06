@@ -84,7 +84,7 @@ func (a *Auth) GenerateToken(kid string, claims Claims) (string, error) {
 
 // Authenticate processes the token to validate the sender's token is valid.
 func (a *Auth) Authenticate(ctx context.Context, bearerToken string) (Claims, error) {
-	parts := strings.Split(bearerToken, "")
+	parts := strings.Split(bearerToken, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
 		return Claims{}, errors.New("expected authorization header format")
 	}
@@ -145,6 +145,10 @@ func (a *Auth) opaPolicyEvaluation(ctx context.Context, regoScript string, rule 
 		rego.Module("policy.rego", regoScript),
 	).PrepareForEval(ctx)
 
+	if err != nil {
+		return err
+	}
+
 	results, err := q.Eval(ctx, rego.EvalInput(input))
 	if err != nil {
 		return fmt.Errorf("query: %w", err)
@@ -155,8 +159,9 @@ func (a *Auth) opaPolicyEvaluation(ctx context.Context, regoScript string, rule 
 	}
 
 	result, ok := results[0].Bindings["x"].(bool)
+	fmt.Printf("%t %t\n", result, ok)
 	if !ok || !result {
-		fmt.Errorf("bindings results[%v] ok[%v]", results, ok)
+		return fmt.Errorf("bindings results[%v] ok[%v]", results, ok)
 	}
 
 	return nil
