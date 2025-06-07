@@ -159,7 +159,6 @@ func (a *Auth) opaPolicyEvaluation(ctx context.Context, regoScript string, rule 
 	}
 
 	result, ok := results[0].Bindings["x"].(bool)
-	fmt.Printf("%t %t\n", result, ok)
 	if !ok || !result {
 		return fmt.Errorf("bindings results[%v] ok[%v]", results, ok)
 	}
