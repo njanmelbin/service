@@ -8,10 +8,11 @@ KIND            := kindest/node:v1.32.2
 KIND_CLUSTER    := iniciar-starter-cluster
 NAMESPACE       := sales-system
 SALES_APP       := sales
-#AUTH_APP        := auth
+AUTH_APP        := auth
 BASE_IMAGE_NAME := localhost/iniciar
 VERSION         := 0.0.1
 SALES_IMAGE     := $(BASE_IMAGE_NAME)/$(SALES_APP):$(VERSION)
+AUTH_IMAGE      := $(BASE_IMAGE_NAME)/$(AUTH_APP):$(VERSION)
 
 # ==============================================================================
 # Install dependencies
@@ -42,7 +43,7 @@ statsviz:
 # ==============================================================================
 # Building containers
 
-build: sales 
+build: sales auth
 
 sales:
 	docker build \
@@ -51,7 +52,13 @@ sales:
 		--build-arg BUILD_REF=$(VERSION) \
 		--build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
 		.
-
+auth:
+	docker build \
+		-f zarf/docker/dockerfile.auth \
+		-t $(AUTH_IMAGE) \
+		--build-arg BUILD_REF=$(VERSION) \
+		--build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+		.
 # ==============================================================================
 # Running from within k8s/kind
 
@@ -78,13 +85,18 @@ dev-status:
 
 dev-load:
 	kind load docker-image $(SALES_IMAGE) --name $(KIND_CLUSTER) & \
+	kind load docker-image $(AUTH_IMAGE) --name $(KIND_CLUSTER) &\
 	wait;
 
 dev-apply:
+	kustomize build zarf/k8s/dev/auth | kubectl apply -f -
+	kubectl wait pods --namespace=$(NAMESPACE) --selector app=$(AUTH_APP) --timeout=120s --for=condition=Ready
+
 	kustomize build zarf/k8s/dev/sales | kubectl apply -f -
 	kubectl wait pods --namespace=$(NAMESPACE) --selector app=$(SALES_APP) --timeout=120s --for=condition=Ready
 
 dev-restart:
+	kubectl rollout restart deployment $(AUTH_APP) --namespace=$(NAMESPACE)
 	kubectl rollout restart deployment $(SALES_APP) --namespace=$(NAMESPACE)
 
 dev-run: build dev-up dev-load dev-apply
@@ -95,6 +107,9 @@ dev-update-apply: build dev-load dev-apply
 
 dev-logs:
 	kubectl logs --namespace=$(NAMESPACE) -l app=$(SALES_APP) --all-containers=true -f --tail=100 --max-log-requests=6 | go run api/tooling/logfmt/main.go -service=$(SALES_APP)
+
+dev-logs-auth:
+	kubectl logs --namespace=$(NAMESPACE) -l app=$(AUTH_APP) --all-containers=true -f --tail=100 | go run apis/tooling/logfmt/main.go
 
 readiness:
 	curl -i http://localhost:3000/v1/readiness

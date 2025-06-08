@@ -24,12 +24,14 @@ var build = "develop"
 func main() {
 	var log *logger.Logger
 
-	ctx := context.Background()
-
 	traceIDFn := func(ctx context.Context) string {
 		return web.GetTraceID(ctx)
 	}
-	log = logger.New(os.Stdout, logger.LevelInfo, "SALES", traceIDFn)
+
+	log = logger.New(os.Stdout, logger.LevelInfo, "AUTH", traceIDFn)
+
+	// -------------------------------------------------------------------------
+	ctx := context.Background()
 
 	if err := run(ctx, log); err != nil {
 		log.Error(ctx, "startup", "err", err)
@@ -45,6 +47,7 @@ func run(ctx context.Context, log *logger.Logger) error {
 
 	// -------------------------------------------------------------------------
 	// Configuration
+
 	cfg := struct {
 		conf.Version
 		Web struct {
@@ -52,24 +55,24 @@ func run(ctx context.Context, log *logger.Logger) error {
 			WriteTimeout    time.Duration `conf:"default:10s"`
 			IdleTimeout     time.Duration `conf:"default:120s"`
 			ShutdownTimeout time.Duration `conf:"default:20s"`
-			APIHost         string        `conf:"default:0.0.0.0:3000"`
-			DebugHost       string        `conf:"default:0.0.0.0:3010"`
+			APIHost         string        `conf:"default:0.0.0.0:6000"`
+			DebugHost       string        `conf:"default:0.0.0.0:6010"`
 		}
 	}{
 		Version: conf.Version{
 			Build: build,
-			Desc:  "sales service",
+			Desc:  "Auth",
 		},
 	}
 
-	const prefix = "SALES"
+	const prefix = "AUTH"
 	help, err := conf.Parse(prefix, &cfg)
 	if err != nil {
 		if errors.Is(err, conf.ErrHelpWanted) {
 			fmt.Println(help)
 			return nil
 		}
-		return fmt.Errorf("parsing config %w", err)
+		return fmt.Errorf("parsing config : %w", err)
 	}
 
 	// -------------------------------------------------------------------------
@@ -80,10 +83,10 @@ func run(ctx context.Context, log *logger.Logger) error {
 
 	out, err := conf.String(&cfg)
 	if err != nil {
-		return fmt.Errorf("generating config for ouput %w", err)
+		return fmt.Errorf("generating config for output: %w", err)
 	}
-
 	log.Info(ctx, "startup", "config", out)
+	log.BuildInfo(ctx)
 
 	expvar.NewString("build").Set(cfg.Build)
 
@@ -91,7 +94,8 @@ func run(ctx context.Context, log *logger.Logger) error {
 	// Start Debug Service
 
 	go func() {
-		log.Info(ctx, "startup", "debug v1 router started", "host", cfg.Web.DebugHost)
+		log.Info(ctx, "startup", "status", "debug v1 router started", "host", cfg.Web.DebugHost)
+
 		if err := http.ListenAndServe(cfg.Web.DebugHost, debug.Mux()); err != nil {
 			log.Error(ctx, "shutdown", "status", "debug v1 router closed", "host", cfg.Web.DebugHost, "msg", err)
 		}
@@ -99,19 +103,21 @@ func run(ctx context.Context, log *logger.Logger) error {
 
 	// -------------------------------------------------------------------------
 	// Start API Service
+
 	log.Info(ctx, "startup", "status", "initializing V1 API support")
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 
-	config := mux.Config{
+	cfgMux := mux.Config{
 		Build:    cfg.Build,
 		Log:      log,
 		Shutdown: shutdown,
 	}
+
 	api := http.Server{
 		Addr:         cfg.Web.APIHost,
-		Handler:      mux.WebAPI(config),
+		Handler:      mux.WebAPI(cfgMux),
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
 		IdleTimeout:  cfg.Web.IdleTimeout,
@@ -122,15 +128,21 @@ func run(ctx context.Context, log *logger.Logger) error {
 
 	go func() {
 		log.Info(ctx, "startup", "status", "api router started", "host", api.Addr)
+
 		serverErrors <- api.ListenAndServe()
 	}()
 
+	// -------------------------------------------------------------------------
+	// Shutdown
+
 	select {
 	case err := <-serverErrors:
-		return fmt.Errorf("server error %w", err)
+		return fmt.Errorf("server error: %w", err)
+
 	case sig := <-shutdown:
-		log.Info(ctx, "shutdown", "status", "shutdown started", "signal", sig)
+		log.Info(ctx, "shutdown", "status", "shutdwown started", "signal", sig)
 		defer log.Info(ctx, "shutdown", "status", "shutdown complete", "signal", sig)
+
 		ctx, cancel := context.WithTimeout(ctx, cfg.Web.ShutdownTimeout)
 		defer cancel()
 
@@ -138,8 +150,6 @@ func run(ctx context.Context, log *logger.Logger) error {
 			api.Close()
 			return fmt.Errorf("could not stop server gracefully: %w", err)
 		}
-
 	}
-
 	return nil
 }

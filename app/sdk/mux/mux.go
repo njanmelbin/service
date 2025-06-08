@@ -8,8 +8,15 @@ import (
 	"service/foundation/web"
 )
 
-func WebAPI(shutdown chan os.Signal, log *logger.Logger) *web.App {
-	mux := web.New(shutdown, mid.Logger(log), mid.Errors(log), mid.Metrics(), mid.Panics())
+// Config contains all the mandatory systems required by handlers.
+type Config struct {
+	Build    string
+	Log      *logger.Logger
+	Shutdown chan os.Signal
+}
+
+func WebAPI(cfg Config) *web.App {
+	mux := web.New(cfg.Shutdown, mid.Logger(cfg.Log), mid.Errors(cfg.Log), mid.Metrics(), mid.Panics())
 
 	checkapi.Routes(mux)
 
