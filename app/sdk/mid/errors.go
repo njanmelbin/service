@@ -15,7 +15,7 @@ func Errors(log *logger.Logger) web.MidFunc {
 			if err := next(ctx, w, r); err != nil {
 				log.Error(ctx, "message", "ERROR", err)
 
-				var er errs.Error
+				var er *errs.Error
 
 				switch {
 				case errs.IsError(err):

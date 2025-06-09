@@ -26,7 +26,7 @@ func New(shutdown chan os.Signal, mw ...MidFunc) *App {
 	}
 }
 
-func (a *App) HandleFunc(pattern string, handler HandlerFunc, mw ...MidFunc) {
+func (a *App) HandleFunc(method string, group string, path string, handler HandlerFunc, mw ...MidFunc) {
 	handler = wrapMiddleware(mw, handler)
 	handler = wrapMiddleware(a.mw, handler)
 
@@ -43,5 +43,11 @@ func (a *App) HandleFunc(pattern string, handler HandlerFunc, mw ...MidFunc) {
 		}
 	}
 
-	a.ServeMux.HandleFunc(pattern, h)
+	finalPath := path
+	if group != "" {
+		finalPath = "/" + group + path
+	}
+	finalPath = fmt.Sprintf("%s %s", method, finalPath)
+
+	a.ServeMux.HandleFunc(finalPath, h)
 }

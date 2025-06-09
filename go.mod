@@ -5,10 +5,10 @@ go 1.24.3
 require (
 	github.com/ardanlabs/conf/v3 v3.7.2
 	github.com/arl/statsviz v0.6.0
+	github.com/go-json-experiment/json v0.0.0-20250517221953-25912455fbc8
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
 	github.com/open-policy-agent/opa v1.5.1
-	golang.org/x/net v0.39.0
 )
 
 require (
