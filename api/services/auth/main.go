@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"service/api/services/sales/build/all"
 	"service/app/sdk/debug"
 	"service/app/sdk/mux"
 	"service/foundation/logger"
@@ -117,7 +118,7 @@ func run(ctx context.Context, log *logger.Logger) error {
 
 	api := http.Server{
 		Addr:         cfg.Web.APIHost,
-		Handler:      mux.WebAPI(cfgMux),
+		Handler:      mux.WebAPI(cfgMux, all.Routes()),
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
 		IdleTimeout:  cfg.Web.IdleTimeout,

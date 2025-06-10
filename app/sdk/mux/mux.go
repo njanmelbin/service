@@ -2,7 +2,6 @@ package mux
 
 import (
 	"os"
-	"service/app/domain/checkapi"
 	"service/app/sdk/mid"
 	"service/foundation/logger"
 	"service/foundation/web"
@@ -15,10 +14,16 @@ type Config struct {
 	Shutdown chan os.Signal
 }
 
-func WebAPI(cfg Config) *web.App {
+// RouteAdder defines behavior that sets the routes to bind for an instance
+// of the service.
+type RouteAdder interface {
+	Add(app *web.App, cfg Config)
+}
+
+func WebAPI(cfg Config, routeAdder RouteAdder) *web.App {
 	mux := web.New(cfg.Shutdown, mid.Logger(cfg.Log), mid.Errors(cfg.Log), mid.Metrics(), mid.Panics())
 
-	checkapi.Routes(mux)
+	routeAdder.Add(mux, cfg)
 
 	return mux
 }
