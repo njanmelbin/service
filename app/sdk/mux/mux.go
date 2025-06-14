@@ -2,16 +2,23 @@ package mux
 
 import (
 	"os"
+	"service/app/sdk/auth"
 	"service/app/sdk/mid"
 	"service/foundation/logger"
 	"service/foundation/web"
 )
 
+// AuthConfig contains auth service specific config.
+type AuthConfig struct {
+	Auth *auth.Auth
+}
+
 // Config contains all the mandatory systems required by handlers.
 type Config struct {
-	Build    string
-	Log      *logger.Logger
-	Shutdown chan os.Signal
+	Build      string
+	Log        *logger.Logger
+	Shutdown   chan os.Signal
+	AuthConfig AuthConfig
 }
 
 // RouteAdder defines behavior that sets the routes to bind for an instance

@@ -1,6 +1,7 @@
 package all
 
 import (
+	"service/app/domain/authapp"
 	"service/app/domain/checkapi"
 	"service/app/sdk/mux"
 	"service/foundation/web"
@@ -17,7 +18,7 @@ type add struct{}
 func (add) Add(app *web.App, cfg mux.Config) {
 	checkapi.Routes(app)
 
-	// authapp.Routes(app, authapp.Config{
-	// 	Auth: cfg.AuthConfig.Auth,
-	// })
+	authapp.Routes(app, authapp.Config{
+		Auth: cfg.AuthConfig.Auth,
+	})
 }
