@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/mail"
-	"service/business/api/order"
+	"service/business/sdk/order"
 
 	"github.com/google/uuid"
 )
