@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/mail"
 	"service/business/sdk/order"
+	"service/foundation/logger"
 
 	"github.com/google/uuid"
 )
@@ -24,4 +25,20 @@ type Storer interface {
 	QueryByID(ctx context.Context, userID uuid.UUID) (User, error)
 	QueryByIDs(ctx context.Context, userID uuid.UUID) ([]User, error)
 	QueryByEmail(ctx context.Context, email mail.Address) (User, error)
+}
+
+type Core struct {
+	log    *logger.Logger
+	storer Storer
+}
+
+func NewCore(log *logger.Logger, storer Storer) *Core {
+	return &Core{
+		log:    log,
+		storer: storer,
+	}
+}
+
+func (c *Core) Create(ctx context.Context, nu NewUser) (User, error) {
+	return User{}, nil
 }
