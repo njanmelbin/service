@@ -4,8 +4,10 @@ package migrate
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"errors"
 	"fmt"
+
 	"service/business/sdk/sqldb"
 
 	"github.com/ardanlabs/darwin/v3"

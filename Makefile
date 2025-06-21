@@ -137,3 +137,23 @@ readiness:
 liveness:
 	curl -i http://localhost:3000/v1/readiness
 
+
+migrate:
+	export SALES_DB_HOST=localhost; go run api/tooling/admin/main.go migrate
+
+seed: migrate
+	export SALES_DB_HOST=localhost; go run api/tooling/admin/main.go seed
+
+compose-up:
+	cd ./zarf/compose/ && docker compose -f docker_compose.yaml -p compose up -d
+
+compose-build-up: build compose-up
+
+compose-down:
+	cd ./zarf/compose/ && docker compose -f docker_compose.yaml down
+
+compose-logs:
+	cd ./zarf/compose/ && docker compose -f docker_compose.yaml logs
+
+pgcli:
+	pgcli postgresql://postgres:postgres@localhost
