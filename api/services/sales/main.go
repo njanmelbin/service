@@ -9,7 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"service/api/services/auth/build/all"
+	"service/api/services/sales/build/all"
 	"service/app/sdk/debug"
 	"service/app/sdk/mux"
 	"service/business/sdk/sqldb"
