@@ -92,6 +92,9 @@ pgcli:
 
 # ------------------------------------------------------------------------------
 
+dev-load-db:
+	kind load docker-image $(POSTGRES) --name $(KIND_CLUSTER)
+
 dev-load:
 	kind load docker-image $(SALES_IMAGE) --name $(KIND_CLUSTER) & \
 	kind load docker-image $(AUTH_IMAGE) --name $(KIND_CLUSTER) &\
@@ -157,3 +160,15 @@ compose-logs:
 
 pgcli:
 	pgcli postgresql://postgres:postgres@localhost
+
+
+token:
+	curl -i \
+	--user "admin@example.com:gophers" http://localhost:6000/v1/auth/token/54bb2165-71e1-41a6-af3e-7da4a0e1e2c1
+
+curl-create:
+	curl -i -X POST \
+	-H "Authorization: Bearer ${TOKEN}" \
+	-H 'Content-Type: application/json' \
+	-d '{"name":"bill","email":"b@gmail.com","roles":["ADMIN"],"department":"ITO","password":"123","passwordConfirm":"123"}' \
+	http://localhost:3000/v1/users
