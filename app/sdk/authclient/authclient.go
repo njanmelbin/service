@@ -79,7 +79,7 @@ func (cln *Client) Authenticate(ctx context.Context, authorization string) (Auth
 }
 
 func (cln *Client) Authorize(ctx context.Context, auth Authorize) error {
-	endpoint := fmt.Sprintf("%s/v1/auth/authorzie", cln.url)
+	endpoint := fmt.Sprintf("%s/v1/auth/authorize", cln.url)
 
 	if err := cln.do(ctx, http.MethodPost, endpoint, nil, auth, nil); err != nil {
 		return err

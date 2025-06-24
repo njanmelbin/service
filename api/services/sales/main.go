@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"runtime"
 	"service/api/services/sales/build/all"
+	"service/app/sdk/authclient"
 	"service/app/sdk/debug"
 	"service/app/sdk/mux"
 	"service/business/sdk/sqldb"
@@ -120,6 +121,13 @@ func run(ctx context.Context, log *logger.Logger) error {
 	defer db.Close()
 
 	// -------------------------------------------------------------------------
+	// Initialize authentication support
+
+	log.Info(ctx, "startup", "status", "initializing authentication support")
+
+	authClient := authclient.New(log, cfg.Auth.Host)
+
+	// -------------------------------------------------------------------------
 	// Start Debug Service
 
 	go func() {
@@ -141,6 +149,9 @@ func run(ctx context.Context, log *logger.Logger) error {
 		Log:      log,
 		Shutdown: shutdown,
 		DB:       db,
+		SalesConfig: mux.SalesConfig{
+			AuthClient: authClient,
+		},
 	}
 	api := http.Server{
 		Addr:         cfg.Web.APIHost,
