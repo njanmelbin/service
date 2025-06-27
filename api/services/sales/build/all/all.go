@@ -18,7 +18,7 @@ func Routes() add {
 type add struct{}
 
 func (add) Add(app *web.App, cfg mux.Config) {
-	userBus := userbus.NewCore(cfg.Log, userdb.NewStore(cfg.Log, cfg.DB))
+	userBus := userbus.NewBusiness(cfg.Log, userdb.NewStore(cfg.Log, cfg.DB))
 	checkapi.Routes(app)
 	userapp.Routes(app, userapp.Config{
 		Log:        cfg.Log,
