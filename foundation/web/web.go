@@ -10,6 +10,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// Encoder defines behavior that can encode a data model and provide
+// the content type for that encoding.
+type Encoder interface {
+	Encode() (data []byte, contentType string, err error)
+}
+
 type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
 
 type App struct {
