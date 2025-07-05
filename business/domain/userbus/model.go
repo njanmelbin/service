@@ -1,7 +1,6 @@
 package userbus
 
 import (
-	"encoding/json"
 	"net/mail"
 	"time"
 
@@ -37,10 +36,4 @@ type UpdateUser struct {
 	Department *string
 	Password   *string
 	Enabled    *bool
-}
-
-// Encode implements the encoder interface.
-func (app User) Encode() ([]byte, string, error) {
-	data, err := json.Marshal(app)
-	return data, "application/json", err
 }

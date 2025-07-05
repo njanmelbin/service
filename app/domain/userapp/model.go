@@ -1,6 +1,7 @@
 package userapp
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/mail"
 	"service/app/sdk/errs"
@@ -20,6 +21,12 @@ type User struct {
 	Enabled      bool     `json:"enabled"`
 	DateCreated  string   `json:"dateCreated"`
 	DateUpdated  string   `json:"dateUpdated"`
+}
+
+// Encode implements the encoder interface.
+func (app User) Encode() ([]byte, string, error) {
+	data, err := json.Marshal(app)
+	return data, "application/json", err
 }
 
 func toAppUser(usr userbus.User) User {
@@ -84,6 +91,11 @@ func toBusNewUser(app NewUser) (userbus.NewUser, error) {
 	}
 
 	return bus, nil
+}
+
+// Decode implements the decoder interface.
+func (app *NewUser) Decode(data []byte) error {
+	return json.Unmarshal(data, app)
 }
 
 // Validate checks the data in the model is considered clean.
