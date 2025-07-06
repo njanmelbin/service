@@ -9,10 +9,10 @@ import (
 
 func Metrics() web.MidFunc {
 	m := func(next web.HandlerFunc) web.HandlerFunc {
-		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		h := func(ctx context.Context, r *http.Request) web.Encoder {
 			ctx = metrics.Set(ctx)
 
-			err := next(ctx, w, r)
+			err := next(ctx, r)
 
 			n := metrics.AddRequests(ctx)
 

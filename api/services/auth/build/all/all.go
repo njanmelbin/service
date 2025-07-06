@@ -2,7 +2,7 @@ package all
 
 import (
 	"service/app/domain/authapp"
-	"service/app/domain/checkapi"
+	"service/app/domain/checkapp"
 	"service/app/sdk/mux"
 	"service/foundation/web"
 )
@@ -16,7 +16,12 @@ func Routes() add {
 type add struct{}
 
 func (add) Add(app *web.App, cfg mux.Config) {
-	checkapi.Routes(app)
+
+	checkapp.Routes(app, checkapp.Config{
+		Build: cfg.Build,
+		Log:   cfg.Log,
+		DB:    cfg.DB,
+	})
 
 	authapp.Routes(app, authapp.Config{
 		Auth: cfg.AuthConfig.Auth,

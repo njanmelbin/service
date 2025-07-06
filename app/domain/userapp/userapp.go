@@ -34,7 +34,7 @@ func NewAppWithAuth(userBus userbus.ExtBusiness, ath *auth.Auth) *App {
 }
 
 // Create adds a new user to the system.
-func (a *App) create(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (a *App) create(ctx context.Context, r *http.Request) web.Encoder {
 	var app NewUser
 	if err := web.Decode(r, &app); err != nil {
 		return errs.New(errs.InvalidArgument, err)
@@ -53,5 +53,5 @@ func (a *App) create(ctx context.Context, w http.ResponseWriter, r *http.Request
 		return errs.Newf(errs.Internal, "create: usr[%+v]: %s", usr, err)
 	}
 
-	return web.Respond(ctx, w, toAppUser(usr), http.StatusCreated)
+	return toAppUser(usr)
 }

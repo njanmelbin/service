@@ -13,7 +13,7 @@ import (
 
 func BeginCommitRollback(log *logger.Logger, bgn sqldb.Beginner) web.MidFunc {
 	m := func(next web.HandlerFunc) web.HandlerFunc {
-		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		h := func(ctx context.Context, r *http.Request) web.Encoder {
 			hasCommitted := false
 
 			log.Info(ctx, "BEGIN TRANSACTION")
@@ -36,7 +36,7 @@ func BeginCommitRollback(log *logger.Logger, bgn sqldb.Beginner) web.MidFunc {
 			}()
 
 			ctx = setTran(ctx, tx)
-			resp := next(ctx, w, r)
+			resp := next(ctx, r)
 
 			// if errs.isError(resp) != nil {
 			// 	return resp

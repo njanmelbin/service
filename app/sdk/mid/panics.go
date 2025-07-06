@@ -11,17 +11,17 @@ import (
 
 func Panics() web.MidFunc {
 	m := func(next web.HandlerFunc) web.HandlerFunc {
-		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) (err error) {
+		h := func(ctx context.Context, r *http.Request) (resp web.Encoder) {
 
 			defer func() {
 				if rec := recover(); rec != nil {
 					trace := debug.Stack()
-					err = errs.Newf(errs.InternalOnlyLog, "PANIC [%v] TRACE[%s]", rec, string(trace))
+					resp = errs.Newf(errs.InternalOnlyLog, "PANIC [%v] TRACE[%s]", rec, string(trace))
 					metrics.AddPanics(ctx)
 				}
 			}()
 
-			return next(ctx, w, r)
+			return next(ctx, r)
 		}
 		return h
 

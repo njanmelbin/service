@@ -3,7 +3,7 @@ package userbus
 import (
 	"fmt"
 	"net/mail"
-	"service/foundation/validate"
+	"service/app/sdk/errs"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,7 +21,7 @@ type QueryFilter struct {
 
 // Validate can perform a check of the data against the validate tags.
 func (qf *QueryFilter) Validate() error {
-	if err := validate.Check(qf); err != nil {
+	if err := errs.Check(qf); err != nil {
 		return fmt.Errorf("validate: %w", err)
 	}
 

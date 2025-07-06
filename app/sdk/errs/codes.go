@@ -1,7 +1,6 @@
 package errs
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -118,39 +117,6 @@ var (
 	// something is very broken. The error message is not sent to the client.
 	InternalOnlyLog = ErrCode{value: 19}
 )
-
-type ErrCode struct {
-	value int
-}
-
-func (ec ErrCode) Value() int {
-	return ec.value
-}
-
-func (ec ErrCode) String() string {
-	return codeNames[ec]
-}
-
-func (ec *ErrCode) UnmarshalText(data []byte) error {
-	errName := string(data)
-
-	v, exists := codeNumbers[errName]
-	if !exists {
-		return fmt.Errorf("error code %q does not exist", errName)
-	}
-
-	*ec = v
-
-	return nil
-}
-
-func (ec ErrCode) MarshalText() ([]byte, error) {
-	return []byte(ec.String()), nil
-}
-
-func (ec ErrCode) Equal(ec2 ErrCode) bool {
-	return ec.value == ec2.value
-}
 
 var codeNumbers = map[string]ErrCode{
 	"ok":                  OK,

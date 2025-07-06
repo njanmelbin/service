@@ -20,7 +20,7 @@ func newApp(ath *auth.Auth) *app {
 	}
 }
 
-func (a *app) token(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (a *app) token(ctx context.Context, r *http.Request) web.Encoder {
 	kid := web.Param(r, "kid")
 
 	if kid == "" {
@@ -34,12 +34,11 @@ func (a *app) token(ctx context.Context, w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return errs.New(errs.Internal, err)
 	}
-	token := token{Token: tkn}
-	return web.Respond(ctx, w, token, http.StatusOK)
+	return token{Token: tkn}
 
 }
 
-func (a *app) authenticate(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (a *app) authenticate(ctx context.Context, r *http.Request) web.Encoder {
 
 	userID, err := mid.GetUserID(ctx)
 	if err != nil {
@@ -50,10 +49,10 @@ func (a *app) authenticate(ctx context.Context, w http.ResponseWriter, r *http.R
 		UserID: userID,
 		Claims: mid.GetClaims(ctx),
 	}
-	return web.Respond(ctx, w, resp, http.StatusOK)
+	return resp
 }
 
-func (a *app) authorize(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (a *app) authorize(ctx context.Context, r *http.Request) web.Encoder {
 
 	var auth authclient.Authorize
 	if err := web.Decode(r, &auth); err != nil {
@@ -64,5 +63,5 @@ func (a *app) authorize(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		return errs.Newf(errs.Unauthenticated, "authorize: you are not authorized for that action, claims[%v] rule[%v]", auth.Claims.Roles, auth.Rule)
 	}
 
-	return web.Respond(ctx, w, nil, http.StatusNoContent)
+	return nil
 }

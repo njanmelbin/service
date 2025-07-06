@@ -11,7 +11,7 @@ import (
 
 func Authorize(client *authclient.Client, rule string) web.MidFunc {
 	m := func(next web.HandlerFunc) web.HandlerFunc {
-		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		h := func(ctx context.Context, r *http.Request) web.Encoder {
 			userID, err := GetUserID(ctx)
 			if err != nil {
 				return errs.New(errs.Unauthenticated, err)
@@ -28,7 +28,7 @@ func Authorize(client *authclient.Client, rule string) web.MidFunc {
 				return errs.New(errs.Unauthenticated, err)
 			}
 
-			return next(ctx, w, r)
+			return next(ctx, r)
 		}
 		return h
 	}

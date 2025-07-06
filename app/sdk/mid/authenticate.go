@@ -18,7 +18,7 @@ import (
 
 func Authenticate(client *authclient.Client) web.MidFunc {
 	m := func(next web.HandlerFunc) web.HandlerFunc {
-		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		h := func(ctx context.Context, r *http.Request) web.Encoder {
 
 			resp, err := client.Authenticate(ctx, r.Header.Get("authorization"))
 			if err != nil {
@@ -28,7 +28,7 @@ func Authenticate(client *authclient.Client) web.MidFunc {
 			ctx = setUserID(ctx, resp.UserID)
 			ctx = setClaims(ctx, resp.Claims)
 
-			return next(ctx, w, r)
+			return next(ctx, r)
 
 		}
 		return h
@@ -39,7 +39,7 @@ func Authenticate(client *authclient.Client) web.MidFunc {
 // Bearer processes JWT authentication logic.
 func Bearer(ath *auth.Auth) web.MidFunc {
 	m := func(next web.HandlerFunc) web.HandlerFunc {
-		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		h := func(ctx context.Context, r *http.Request) web.Encoder {
 			claims, err := ath.Authenticate(ctx, r.Header.Get("authorization"))
 			if err != nil {
 				return errs.New(errs.Unauthenticated, err)
@@ -57,7 +57,7 @@ func Bearer(ath *auth.Auth) web.MidFunc {
 			ctx = setUserID(ctx, subjectID)
 			ctx = setClaims(ctx, claims)
 
-			return next(ctx, w, r)
+			return next(ctx, r)
 		}
 		return h
 	}
@@ -67,7 +67,7 @@ func Bearer(ath *auth.Auth) web.MidFunc {
 // Basic processes basic authentication logic.
 func Basic(ath *auth.Auth) web.MidFunc {
 	m := func(next web.HandlerFunc) web.HandlerFunc {
-		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		h := func(ctx context.Context, r *http.Request) web.Encoder {
 			email, _, ok := parseBasicAuth(r.Header.Get("authorization"))
 			if !ok {
 				return errs.Newf(errs.Unauthenticated, "invalid basic auth")
@@ -96,7 +96,7 @@ func Basic(ath *auth.Auth) web.MidFunc {
 			ctx = setUserID(ctx, subjectID)
 			ctx = setClaims(ctx, claims)
 
-			return next(ctx, w, r)
+			return next(ctx, r)
 		}
 		return h
 	}

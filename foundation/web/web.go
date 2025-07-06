@@ -16,7 +16,7 @@ type Encoder interface {
 	Encode() (data []byte, contentType string, err error)
 }
 
-type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
+type HandlerFunc func(ctx context.Context, r *http.Request) Encoder
 
 type App struct {
 	*http.ServeMux
@@ -43,10 +43,13 @@ func (a *App) HandleFunc(method string, group string, path string, handler Handl
 		}
 
 		ctx := SetValues(r.Context(), &v)
-		if err := handler(ctx, w, r); err != nil {
-			fmt.Println(err)
+		resp := handler(ctx, r)
+
+		if err := Respond(ctx, w, resp); err != nil {
+			//a.log(ctx, "web-respond", "ERROR", err)
 			return
 		}
+
 	}
 
 	finalPath := path

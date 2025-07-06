@@ -1,7 +1,7 @@
 package all
 
 import (
-	"service/app/domain/checkapi"
+	"service/app/domain/checkapp"
 	"service/app/domain/userapp"
 	"service/app/sdk/mux"
 	"service/business/domain/userbus"
@@ -19,7 +19,13 @@ type add struct{}
 
 func (add) Add(app *web.App, cfg mux.Config) {
 	userBus := userbus.NewBusiness(cfg.Log, userdb.NewStore(cfg.Log, cfg.DB))
-	checkapi.Routes(app)
+
+	checkapp.Routes(app, checkapp.Config{
+		Build: cfg.Build,
+		Log:   cfg.Log,
+		DB:    cfg.DB,
+	})
+
 	userapp.Routes(app, userapp.Config{
 		Log:        cfg.Log,
 		UserBus:    userBus,
