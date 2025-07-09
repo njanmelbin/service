@@ -6,6 +6,8 @@ import (
 	"net/mail"
 	"service/business/domain/userbus"
 	"service/business/sdk/sqldb/dbarray"
+	"service/business/types/name"
+	"service/business/types/role"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,7 +33,7 @@ func toDBUser(usr userbus.User) user {
 
 	return user{
 		ID:           usr.ID,
-		Name:         usr.Name,
+		Name:         usr.Name.String(),
 		Email:        usr.Email.Address,
 		Roles:        roles,
 		PasswordHash: usr.PasswordHash,
@@ -50,18 +52,23 @@ func toBusUser(dbUsr user) (userbus.User, error) {
 		Address: dbUsr.Email,
 	}
 
-	roles := make([]userbus.Role, len(dbUsr.Roles))
+	roles := make([]role.Role, len(dbUsr.Roles))
 	for i, value := range dbUsr.Roles {
 		var err error
-		roles[i], err = userbus.Parse(value)
+		roles[i], err = role.Parse(value)
 		if err != nil {
 			return userbus.User{}, fmt.Errorf("parse role: %w", err)
 		}
 	}
 
+	nme, err := name.Parse(dbUsr.Name)
+	if err != nil {
+		return userbus.User{}, fmt.Errorf("parse name: %w", err)
+	}
+
 	bus := userbus.User{
 		ID:           dbUsr.ID,
-		Name:         dbUsr.Name,
+		Name:         nme,
 		Email:        addr,
 		Roles:        roles,
 		PasswordHash: dbUsr.PasswordHash,
