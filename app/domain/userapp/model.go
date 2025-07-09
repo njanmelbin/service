@@ -6,6 +6,8 @@ import (
 	"net/mail"
 	"service/app/sdk/errs"
 	"service/business/domain/userbus"
+	"service/business/types/name"
+	"service/business/types/role"
 	"time"
 )
 
@@ -36,7 +38,7 @@ func toAppUser(usr userbus.User) User {
 
 	return User{
 		ID:           usr.ID.String(),
-		Name:         usr.Name,
+		Name:         usr.Name.String(),
 		Email:        usr.Email.Address,
 		Roles:        roles,
 		PasswordHash: usr.PasswordHash,
@@ -67,9 +69,9 @@ type NewUser struct {
 }
 
 func toBusNewUser(app NewUser) (userbus.NewUser, error) {
-	roles := make([]userbus.Role, len(app.Roles))
+	roles := make([]role.Role, len(app.Roles))
 	for i, roleStr := range app.Roles {
-		role, err := userbus.Parse(roleStr)
+		role, err := role.Parse(roleStr)
 		if err != nil {
 			return userbus.NewUser{}, fmt.Errorf("parse: %w", err)
 		}
@@ -81,8 +83,13 @@ func toBusNewUser(app NewUser) (userbus.NewUser, error) {
 		return userbus.NewUser{}, fmt.Errorf("parse: %w", err)
 	}
 
+	nme, err := name.Parse(app.Name)
+	if err != nil {
+		return userbus.NewUser{}, fmt.Errorf("parse: %w", err)
+	}
+
 	bus := userbus.NewUser{
-		Name:       app.Name,
+		Name:       nme,
 		Email:      *addr,
 		Roles:      roles,
 		Department: app.Department,
