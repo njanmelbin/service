@@ -1,11 +1,14 @@
 package userbus
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"net/mail"
 	"service/business/types/name"
 	"service/business/types/role"
+
+	"github.com/google/uuid"
 )
 
 // TestNewUsers is a helper method for testing.
@@ -28,4 +31,21 @@ func TestNewUsers(n int, rle role.Role) []NewUser {
 	}
 
 	return newUsrs
+}
+
+// TestSeedUsers is a helper method for testing.
+func TestSeedUsers(ctx context.Context, n int, role role.Role, api ExtBusiness) ([]User, error) {
+	newUsrs := TestNewUsers(n, role)
+
+	usrs := make([]User, len(newUsrs))
+	for i, nu := range newUsrs {
+		usr, err := api.Create(ctx, uuid.UUID{}, nu)
+		if err != nil {
+			return nil, fmt.Errorf("seeding user: idx: %d : %w", i, err)
+		}
+
+		usrs[i] = usr
+	}
+
+	return usrs, nil
 }
