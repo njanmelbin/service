@@ -13,6 +13,7 @@ import (
 	"service/app/sdk/auth"
 	"service/app/sdk/debug"
 	"service/app/sdk/mux"
+	"service/business/sdk/sqldb"
 	"service/foundation/keystore"
 	"service/foundation/logger"
 	"service/foundation/web"
@@ -61,6 +62,15 @@ func run(ctx context.Context, log *logger.Logger) error {
 			APIHost         string        `conf:"default:0.0.0.0:6000"`
 			DebugHost       string        `conf:"default:0.0.0.0:6010"`
 		}
+		DB struct {
+			User         string `conf:"default:postgres"`
+			Password     string `conf:"default:postgres,mask"`
+			Host         string `conf:"default:database-service"`
+			Name         string `conf:"default:postgres"`
+			MaxIdleConns int    `conf:"default:0"`
+			MaxOpenConns int    `conf:"default:0"`
+			DisableTLS   bool   `conf:"default:true"`
+		}
 		Auth struct {
 			KeysEnvVar string
 			KeysFolder string `conf:"default:zarf/keys/"`
@@ -98,6 +108,27 @@ func run(ctx context.Context, log *logger.Logger) error {
 	log.BuildInfo(ctx)
 
 	expvar.NewString("build").Set(cfg.Build)
+
+	// -------------------------------------------------------------------------
+	// Database Support
+
+	log.Info(ctx, "startup", "status", "initializing database support", "hostport", cfg.DB.Host)
+
+	db, err := sqldb.Open(sqldb.Config{
+		User:         cfg.DB.User,
+		Password:     cfg.DB.Password,
+		Host:         cfg.DB.Host,
+		Name:         cfg.DB.Name,
+		MaxIdleConns: cfg.DB.MaxIdleConns,
+		MaxOpenConns: cfg.DB.MaxOpenConns,
+		DisableTLS:   cfg.DB.DisableTLS,
+	})
+	if err != nil {
+		return fmt.Errorf("connecting to db: %w", err)
+	}
+
+	defer db.Close()
+
 	// -------------------------------------------------------------------------
 	// Initialize authentication support
 
@@ -156,6 +187,7 @@ func run(ctx context.Context, log *logger.Logger) error {
 	cfgMux := mux.Config{
 		Build:    cfg.Build,
 		Log:      log,
+		DB:       db,
 		Shutdown: shutdown,
 		AuthConfig: mux.AuthConfig{
 			Auth: ath,

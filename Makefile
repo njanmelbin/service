@@ -144,7 +144,7 @@ load-images:
 	done
 
 	@echo "✅ All images loaded successfully into the kind cluster."
-	
+
 dev-load-db:
 	kind load docker-image $(POSTGRES) --name $(KIND_CLUSTER)
 
@@ -160,14 +160,14 @@ dev-apply:
 	kustomize build zarf/k8s/dev/loki | kubectl apply -f -
 	kustomize build zarf/k8s/dev/promtail | kubectl apply -f -
 
+	kustomize build zarf/k8s/dev/database | kubectl apply -f -
+	kubectl rollout status --namespace=$(NAMESPACE) --watch --timeout=120s sts/database
+
 	kustomize build zarf/k8s/dev/auth | kubectl apply -f -
 	kubectl wait pods --namespace=$(NAMESPACE) --selector app=$(AUTH_APP) --timeout=120s --for=condition=Ready
 
 	kustomize build zarf/k8s/dev/sales | kubectl apply -f -
 	kubectl wait pods --namespace=$(NAMESPACE) --selector app=$(SALES_APP) --timeout=120s --for=condition=Ready
-
-	kustomize build zarf/k8s/dev/database | kubectl apply -f -
-	kubectl rollout status --namespace=$(NAMESPACE) --watch --timeout=120s sts/database
 
 
 dev-restart:
