@@ -2,9 +2,14 @@
 # Define dependencies
 
 GOLANG          := golang:1.24
-ALPINE          := alpine:3.21
+ALPINE          := alpine:3.22
 POSTGRES        := postgres:17.5
-KIND            := kindest/node:v1.32.2
+KIND            := kindest/node:v1.33.1
+GRAFANA         := grafana/grafana:11.6.0
+PROMETHEUS      := prom/prometheus:v3.4.0
+TEMPO           := grafana/tempo:2.7.0
+LOKI            := grafana/loki:3.5.0
+PROMTAIL        := grafana/promtail:3.5.0
 
 KIND_CLUSTER    := iniciar-starter-cluster
 NAMESPACE       := sales-system
@@ -31,7 +36,12 @@ dev-brew:
 	brew list kustomize || brew install kustomize
 
 dev-docker:
-	docker pull $(POSTGRES)
+	docker pull $(GOLANG) & \
+	docker pull $(ALPINE) & \
+	docker pull $(KIND) & \
+	docker pull $(POSTGRES) & \
+	docker pull $(GRAFANA) & \
+	wait;
 
 # ==============================================================================
 # Metrics and Tracing
@@ -72,7 +82,7 @@ dev-up:
 		--config zarf/k8s/dev/kind-config.yaml
 
 	kubectl wait --timeout=120s --namespace=local-path-storage --for=condition=Available deployment/local-path-provisioner
-	kind load docker-image $(POSTGRES) --name $(KIND_CLUSTER)
+	wait;
 
 dev-down:
 	kind delete cluster --name $(KIND_CLUSTER)
@@ -92,6 +102,49 @@ pgcli:
 
 # ------------------------------------------------------------------------------
 
+IMAGE_LIST := \
+	$(GOLANG) \
+	$(ALPINE) \
+	$(KIND) \
+	$(POSTGRES) \
+	$(GRAFANA) \
+	$(PROMETHEUS) \
+	$(TEMPO) \
+	$(LOKI) \
+	$(PROMTAIL)
+
+load-images:
+	@echo "Pulling Docker images..."
+	@for image in $(IMAGE_LIST); do \
+		docker pull $$image || exit 1; \
+	done
+
+	@echo "Saving images as tarballs..."
+	@for image in $(IMAGE_LIST); do \
+		name=$$(echo $$image | tr '/:' '__'); \
+		docker save $$image -o $$name.tar || exit 1; \
+	done
+
+	@echo "Copying tarballs into kind node..."
+	@for image in $(IMAGE_LIST); do \
+		name=$$(echo $$image | tr '/:' '__'); \
+		docker cp $$name.tar iniciar-starter-cluster-control-plane:/$$name.tar || exit 1; \
+	done
+
+	@echo "Importing images into containerd inside kind node..."
+	@for image in $(IMAGE_LIST); do \
+		name=$$(echo $$image | tr '/:' '__'); \
+		docker exec iniciar-starter-cluster-control-plane ctr -n k8s.io images import /$$name.tar || exit 1; \
+	done
+
+	@echo "Cleaning up tarballs from kind node..."
+	@for image in $(IMAGE_LIST); do \
+		name=$$(echo $$image | tr '/:' '__'); \
+		docker exec iniciar-starter-cluster-control-plane rm /$$name.tar || true; \
+	done
+
+	@echo "✅ All images loaded successfully into the kind cluster."
+	
 dev-load-db:
 	kind load docker-image $(POSTGRES) --name $(KIND_CLUSTER)
 
@@ -101,6 +154,12 @@ dev-load:
 	wait;
 
 dev-apply:
+	kustomize build zarf/k8s/dev/grafana | kubectl apply -f -
+	kustomize build zarf/k8s/dev/prometheus | kubectl apply -f -
+	kustomize build zarf/k8s/dev/tempo | kubectl apply -f -
+	kustomize build zarf/k8s/dev/loki | kubectl apply -f -
+	kustomize build zarf/k8s/dev/promtail | kubectl apply -f -
+
 	kustomize build zarf/k8s/dev/auth | kubectl apply -f -
 	kubectl wait pods --namespace=$(NAMESPACE) --selector app=$(AUTH_APP) --timeout=120s --for=condition=Ready
 

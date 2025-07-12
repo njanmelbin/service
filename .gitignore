@@ -36,3 +36,5 @@ _testmain.go
 .vscode/tasks.json
 zarf/compose/database-data/data
 .env
+
+*.tar
