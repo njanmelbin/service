@@ -12,7 +12,10 @@ import (
 	"path"
 	"service/app/sdk/errs"
 	"service/foundation/logger"
+	"service/foundation/otel"
 	"time"
+
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // This provides a default client configuration, but it's recommended
@@ -102,6 +105,12 @@ func (cln *Client) do(ctx context.Context, method string, endpoint string, heade
 		cln.log.Info(ctx, "authclient: rawRequest: completed", "status", statusCode)
 	}()
 
+	ctx, span := otel.AddSpan(ctx, fmt.Sprintf("app.sdk.authclient.%s", base), attribute.String("endpoint", endpoint))
+	defer func() {
+		span.SetAttributes(attribute.Int("status", statusCode))
+		span.End()
+	}()
+
 	var b bytes.Buffer
 	if body != nil {
 		if err := json.NewEncoder(&b).Encode(body); err != nil {
@@ -122,6 +131,8 @@ func (cln *Client) do(ctx context.Context, method string, endpoint string, heade
 		cln.log.Info(ctx, "authclient: rawRequest", "key", key, "value", value)
 		req.Header.Set(key, value)
 	}
+
+	otel.AddTraceToRequest(ctx, req)
 
 	resp, err := cln.http.Do(req)
 	if err != nil {
