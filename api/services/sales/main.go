@@ -16,7 +16,6 @@ import (
 	"service/business/sdk/sqldb"
 	"service/foundation/logger"
 	"service/foundation/otel"
-	"service/foundation/web"
 	"syscall"
 	"time"
 
@@ -31,7 +30,7 @@ func main() {
 	ctx := context.Background()
 
 	traceIDFn := func(ctx context.Context) string {
-		return web.GetTraceID(ctx)
+		return otel.GetTraceID(ctx)
 	}
 	log = logger.New(os.Stdout, logger.LevelInfo, "SALES", traceIDFn)
 

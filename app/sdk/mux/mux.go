@@ -40,7 +40,7 @@ type RouteAdder interface {
 }
 
 func WebAPI(cfg Config, routeAdder RouteAdder) *web.App {
-	mux := web.New(cfg.Shutdown, cfg.Tracer,
+	mux := web.New(cfg.Shutdown, cfg.Tracer, mid.Otel(cfg.Tracer),
 		mid.Logger(cfg.Log), mid.Errors(cfg.Log), mid.Metrics(), mid.Panics())
 
 	routeAdder.Add(mux, cfg)
