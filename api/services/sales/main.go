@@ -15,6 +15,7 @@ import (
 	"service/app/sdk/mux"
 	"service/business/sdk/sqldb"
 	"service/foundation/logger"
+	"service/foundation/otel"
 	"service/foundation/web"
 	"syscall"
 	"time"
@@ -69,6 +70,14 @@ func run(ctx context.Context, log *logger.Logger) error {
 			MaxIdleConns int    `conf:"default:0"`
 			MaxOpenConns int    `conf:"default:0"`
 			DisableTLS   bool   `conf:"default:true"`
+		}
+		Tempo struct {
+			Host        string  `conf:"default:tempo:4317"`
+			ServiceName string  `conf:"default:sales"`
+			Probability float64 `conf:"default:0.05"`
+			// Shouldn't use a high Probability value in non-developer systems.
+			// 0.05 should be enough for most systems. Some might want to have
+			// this even lower.
 		}
 	}{
 		Version: conf.Version{
@@ -128,6 +137,28 @@ func run(ctx context.Context, log *logger.Logger) error {
 	authClient := authclient.New(log, cfg.Auth.Host)
 
 	// -------------------------------------------------------------------------
+	// Start Tracing Support
+
+	log.Info(ctx, "startup", "status", "initializing tracing support")
+
+	traceProvider, teardown, err := otel.InitTracing(log, otel.Config{
+		ServiceName: cfg.Tempo.ServiceName,
+		Host:        cfg.Tempo.Host,
+		ExcludedRoutes: map[string]struct{}{
+			"/v1/liveness":  {},
+			"/v1/readiness": {},
+		},
+		Probability: cfg.Tempo.Probability,
+	})
+	if err != nil {
+		return fmt.Errorf("starting tracing: %w", err)
+	}
+
+	defer teardown(context.Background())
+
+	tracer := traceProvider.Tracer(cfg.Tempo.ServiceName)
+
+	// -------------------------------------------------------------------------
 	// Start Debug Service
 
 	go func() {
@@ -149,6 +180,7 @@ func run(ctx context.Context, log *logger.Logger) error {
 		Log:      log,
 		Shutdown: shutdown,
 		DB:       db,
+		Tracer:   tracer,
 		SalesConfig: mux.SalesConfig{
 			AuthClient: authClient,
 		},

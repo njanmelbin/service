@@ -9,6 +9,7 @@ import (
 	"service/foundation/web"
 
 	"github.com/jmoiron/sqlx"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // AuthConfig contains auth service specific config.
@@ -29,6 +30,7 @@ type Config struct {
 	AuthConfig  AuthConfig
 	SalesConfig SalesConfig
 	DB          *sqlx.DB
+	Tracer      trace.Tracer
 }
 
 // RouteAdder defines behavior that sets the routes to bind for an instance
@@ -38,7 +40,8 @@ type RouteAdder interface {
 }
 
 func WebAPI(cfg Config, routeAdder RouteAdder) *web.App {
-	mux := web.New(cfg.Shutdown, mid.Logger(cfg.Log), mid.Errors(cfg.Log), mid.Metrics(), mid.Panics())
+	mux := web.New(cfg.Shutdown, cfg.Tracer,
+		mid.Logger(cfg.Log), mid.Errors(cfg.Log), mid.Metrics(), mid.Panics())
 
 	routeAdder.Add(mux, cfg)
 

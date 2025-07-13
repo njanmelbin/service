@@ -231,3 +231,6 @@ curl-create:
 	-H 'Content-Type: application/json' \
 	-d '{"name":"bill","email":"b@gmail.com","roles":["ADMIN"],"department":"ITO","password":"123","passwordConfirm":"123"}' \
 	http://localhost:3000/v1/users
+
+grafana:
+	open http://localhost:3100/
