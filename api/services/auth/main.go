@@ -16,6 +16,7 @@ import (
 	"service/business/sdk/sqldb"
 	"service/foundation/keystore"
 	"service/foundation/logger"
+	"service/foundation/otel"
 	"service/foundation/web"
 	"syscall"
 	"time"
@@ -76,6 +77,11 @@ func run(ctx context.Context, log *logger.Logger) error {
 			KeysFolder string `conf:"default:zarf/keys/"`
 			ActiveKID  string `conf:"default:54bb2165-71e1-41a6-af3e-7da4a0e1e2c1"`
 			Issuer     string `conf:"default:service project"`
+		}
+		Tempo struct {
+			Host        string  `conf:"default:tempo:4317"`
+			ServiceName string  `conf:"default:auth"`
+			Probability float64 `conf:"default:0.05"`
 		}
 	}{
 		Version: conf.Version{
@@ -166,6 +172,28 @@ func run(ctx context.Context, log *logger.Logger) error {
 	}
 
 	// -------------------------------------------------------------------------
+	// Start Tracing Support
+
+	log.Info(ctx, "startup", "status", "initializing tracing support")
+
+	traceProvider, teardown, err := otel.InitTracing(log, otel.Config{
+		ServiceName: cfg.Tempo.ServiceName,
+		Host:        cfg.Tempo.Host,
+		ExcludedRoutes: map[string]struct{}{
+			"/v1/liveness":  {},
+			"/v1/readiness": {},
+		},
+		Probability: cfg.Tempo.Probability,
+	})
+	if err != nil {
+		return fmt.Errorf("starting tracing: %w", err)
+	}
+
+	defer teardown(context.Background())
+
+	tracer := traceProvider.Tracer(cfg.Tempo.ServiceName)
+
+	// -------------------------------------------------------------------------
 	// Start Debug Service
 
 	go func() {
@@ -188,6 +216,7 @@ func run(ctx context.Context, log *logger.Logger) error {
 		Build:    cfg.Build,
 		Log:      log,
 		DB:       db,
+		Tracer:   tracer,
 		Shutdown: shutdown,
 		AuthConfig: mux.AuthConfig{
 			Auth: ath,
