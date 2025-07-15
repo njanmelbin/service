@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"service/business/sdk/delegate"
 	"service/foundation/logger"
 
 	"time"
@@ -48,14 +49,16 @@ type ExtBusiness interface {
 type Extension func(ExtBusiness) ExtBusiness
 
 type Business struct {
-	log    *logger.Logger
-	storer Storer
+	log      *logger.Logger
+	storer   Storer
+	delegate *delegate.Delegate
 }
 
-func NewBusiness(log *logger.Logger, storer Storer, extensions ...Extension) ExtBusiness {
+func NewBusiness(log *logger.Logger, delegate *delegate.Delegate, storer Storer, extensions ...Extension) ExtBusiness {
 	b := ExtBusiness(&Business{
-		log:    log,
-		storer: storer,
+		log:      log,
+		delegate: delegate,
+		storer:   storer,
 	})
 
 	for i := len(extensions) - 1; i >= 0; i-- {

@@ -6,6 +6,7 @@ import (
 	"service/app/sdk/mux"
 	"service/business/domain/userbus"
 	"service/business/domain/userbus/stores/userdb"
+	"service/business/sdk/delegate"
 	"service/foundation/web"
 )
 
@@ -18,7 +19,9 @@ func Routes() add {
 type add struct{}
 
 func (add) Add(app *web.App, cfg mux.Config) {
-	userBus := userbus.NewBusiness(cfg.Log, userdb.NewStore(cfg.Log, cfg.DB))
+	delegate := delegate.New(cfg.Log)
+
+	userBus := userbus.NewBusiness(cfg.Log, delegate, userdb.NewStore(cfg.Log, cfg.DB))
 
 	checkapp.Routes(app, checkapp.Config{
 		Build: cfg.Build,
