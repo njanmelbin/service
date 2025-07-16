@@ -33,3 +33,15 @@ func (ext *Extension) Create(ctx context.Context, actorID uuid.UUID, nu userbus.
 
 	return usr, nil
 }
+
+// Delete applies otel to the user deletion process.
+func (ext *Extension) Delete(ctx context.Context, actorID uuid.UUID, usr userbus.User) error {
+	ctx, span := otel.AddSpan(ctx, "business.userbus.delete")
+	defer span.End()
+
+	if err := ext.bus.Delete(ctx, actorID, usr); err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -22,7 +22,7 @@ var (
 type Storer interface {
 	Create(ctx context.Context, usr User) error
 	// Update(ctx context.Context, usr User) error
-	// Delete(ctx context.Context, usr User) error
+	Delete(ctx context.Context, usr User) error
 	// Query(ctx context.Context, filter QueryFilter, orderBy order.By, pageNumber int, rowsPerPage int) ([]User, error)
 	// Count(ctx context.Context, filter QueryFilter) (int, error)
 	// QueryByID(ctx context.Context, userID uuid.UUID) (User, error)
@@ -36,7 +36,7 @@ type ExtBusiness interface {
 	//NewWithTx(tx sqldb.CommitRollbacker) (ExtBusiness, error)
 	Create(ctx context.Context, actorID uuid.UUID, nu NewUser) (User, error)
 	// Update(ctx context.Context, actorID uuid.UUID, usr User, uu UpdateUser) (User, error)
-	// Delete(ctx context.Context, actorID uuid.UUID, usr User) error
+	Delete(ctx context.Context, actorID uuid.UUID, usr User) error
 	// Query(ctx context.Context, filter QueryFilter, orderBy order.By, page page.Page) ([]User, error)
 	// Count(ctx context.Context, filter QueryFilter) (int, error)
 	// QueryByID(ctx context.Context, userID uuid.UUID) (User, error)
@@ -96,4 +96,19 @@ func (b *Business) Create(ctx context.Context, actorID uuid.UUID, nu NewUser) (U
 	}
 
 	return usr, nil
+}
+
+// Delete removes the specified user.
+func (b *Business) Delete(ctx context.Context, actorID uuid.UUID, usr User) error {
+	if err := b.storer.Delete(ctx, usr); err != nil {
+		return fmt.Errorf("delete: %w", err)
+	}
+
+	// Other domains may need to know when a user is deleted so business
+	// logic can be applied. This represents a delegate call to other domains.
+	if err := b.delegate.Call(ctx, ActionDeletedData(usr.ID)); err != nil {
+		return fmt.Errorf("failed to execute `%s` action: %w", ActionDeleted, err)
+	}
+
+	return nil
 }
