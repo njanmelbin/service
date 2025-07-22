@@ -6,10 +6,17 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
 	"service/app/sdk/debug"
 	"service/foundation/logger"
+	"syscall"
 	"time"
+
+	"service/api/services/metrics/collector"
+	"service/api/services/metrics/publisher"
+	expvarsrv "service/api/services/metrics/publisher/expvar"
+	prometheussrv "service/api/services/metrics/publisher/prometheus"
 
 	"github.com/ardanlabs/conf/v3"
 )
@@ -117,6 +124,44 @@ func run(ctx context.Context, log *logger.Logger) error {
 			log.Error(ctx, "shutdown", "status", "debug router closed", "host", cfg.Web.DebugHost, "err", err)
 		}
 	}()
+
+	// -------------------------------------------------------------------------
+	// Start Prometheus Service
+
+	prom := prometheussrv.New(log, cfg.Prometheus.Host, cfg.Prometheus.Route, cfg.Prometheus.ReadTimeout, cfg.Prometheus.WriteTimeout, cfg.Prometheus.IdleTimeout)
+	defer prom.Stop(cfg.Prometheus.ShutdownTimeout)
+
+	// -------------------------------------------------------------------------
+	// Start expvar Service
+
+	exp := expvarsrv.New(log, cfg.Expvar.Host, cfg.Expvar.Route, cfg.Expvar.ReadTimeout, cfg.Expvar.WriteTimeout, cfg.Expvar.IdleTimeout)
+	defer exp.Stop(cfg.Expvar.ShutdownTimeout)
+
+	// -------------------------------------------------------------------------
+	// Start collectors and publishers
+
+	collector, err := collector.New(cfg.Collect.From)
+	if err != nil {
+		return fmt.Errorf("starting collector: %w", err)
+	}
+
+	stdout := publisher.NewStdout(log)
+
+	publish, err := publisher.New(log, collector, cfg.Publish.Interval, prom.Publish, exp.Publish, stdout.Publish)
+	if err != nil {
+		return fmt.Errorf("starting publisher: %w", err)
+	}
+	defer publish.Stop()
+
+	// -------------------------------------------------------------------------
+	// Shutdown
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
+	<-shutdown
+
+	log.Info(ctx, "shutdown", "status", "shutdown started")
+	defer log.Info(ctx, "shutdown", "status", "shutdown complete")
 
 	return nil
 }
