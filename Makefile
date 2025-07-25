@@ -15,10 +15,12 @@ KIND_CLUSTER    := iniciar-starter-cluster
 NAMESPACE       := sales-system
 SALES_APP       := sales
 AUTH_APP        := auth
+METRICS_APP     := metrics
 BASE_IMAGE_NAME := localhost/iniciar
 VERSION         := 0.0.1
 SALES_IMAGE     := $(BASE_IMAGE_NAME)/$(SALES_APP):$(VERSION)
-AUTH_IMAGE      := $(BASE_IMAGE_NAME)/$(AUTH_APP):$(VERSION)
+AUTH_IMAGE      := $(BASE_IMAGE_NAME)/$(METRICS_APP):$(VERSION)
+METRICS_IMAGE   := $(BASE_IMAGE_NAME)/$(AUTH_APP):$(VERSION)
 
 # ==============================================================================
 # Install dependencies
@@ -56,15 +58,19 @@ statsviz:
 # ==============================================================================
 # Building containers
 
-build: sales auth
+build: sales auth  metrics
 
-sales:
+
+
+
+metrics:
 	docker build \
-		-f zarf/docker/dockerfile.sales \
-		-t $(SALES_IMAGE) \
-		--build-arg BUILD_REF=$(VERSION) \
+		-f zarf/docker/dockerfile.metrics \
+		-t $(METRICS_IMAGE) \
+		--build-arg BUILD_REF=0.0.1 \
 		--build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
 		.
+
 auth:
 	docker build \
 		-f zarf/docker/dockerfile.auth \
@@ -72,6 +78,13 @@ auth:
 		--build-arg BUILD_REF=$(VERSION) \
 		--build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
 		.
+sales:
+	docker build -f zarf/docker/dockerfile.sales \
+		-t $(SALES_IMAGE) \
+		--build-arg BUILD_REF=$(VERSION) \
+		--build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+		.
+
 # ==============================================================================
 # Running from within k8s/kind
 
@@ -151,6 +164,7 @@ dev-load-db:
 dev-load:
 	kind load docker-image $(SALES_IMAGE) --name $(KIND_CLUSTER) & \
 	kind load docker-image $(AUTH_IMAGE) --name $(KIND_CLUSTER) &\
+	kind load docker-image $(METRICS_IMAGE) --name $(KIND_CLUSTER) &\
 	wait;
 
 dev-apply:
@@ -163,8 +177,8 @@ dev-apply:
 	kustomize build zarf/k8s/dev/database | kubectl apply -f -
 	kubectl rollout status --namespace=$(NAMESPACE) --watch --timeout=120s sts/database
 
-	kustomize build zarf/k8s/dev/auth | kubectl apply -f -
-	kubectl wait pods --namespace=$(NAMESPACE) --selector app=$(AUTH_APP) --timeout=120s --for=condition=Ready
+	# kustomize build zarf/k8s/dev/auth | kubectl apply -f -
+	# kubectl wait pods --namespace=$(NAMESPACE) --selector app=$(AUTH_APP) --timeout=120s --for=condition=Ready
 
 	kustomize build zarf/k8s/dev/sales | kubectl apply -f -
 	kubectl wait pods --namespace=$(NAMESPACE) --selector app=$(SALES_APP) --timeout=120s --for=condition=Ready
