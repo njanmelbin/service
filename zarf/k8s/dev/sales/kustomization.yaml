@@ -9,3 +9,6 @@ images:
   - name: sales-image
     newName: localhost/iniciar/sales
     newTag: 0.0.1
+  - name: metrics-image
+    newName: localhost/iniciar/metrics
+    newTag: 0.0.1
