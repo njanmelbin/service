@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/mail"
 	"service/business/sdk/delegate"
 	"service/foundation/logger"
 
@@ -27,7 +28,7 @@ type Storer interface {
 	// Count(ctx context.Context, filter QueryFilter) (int, error)
 	// QueryByID(ctx context.Context, userID uuid.UUID) (User, error)
 	// QueryByIDs(ctx context.Context, userIDs []uuid.UUID) ([]User, error)
-	// QueryByEmail(ctx context.Context, email mail.Address) (User, error)
+	QueryByEmail(ctx context.Context, email mail.Address) (User, error)
 }
 
 // ExtBusiness interface provides support for extensions that wrap extra functionality
@@ -40,8 +41,8 @@ type ExtBusiness interface {
 	// Query(ctx context.Context, filter QueryFilter, orderBy order.By, page page.Page) ([]User, error)
 	// Count(ctx context.Context, filter QueryFilter) (int, error)
 	// QueryByID(ctx context.Context, userID uuid.UUID) (User, error)
-	// QueryByEmail(ctx context.Context, email mail.Address) (User, error)
-	// Authenticate(ctx context.Context, email mail.Address, password string) (User, error)
+	QueryByEmail(ctx context.Context, email mail.Address) (User, error)
+	Authenticate(ctx context.Context, email mail.Address, password string) (User, error)
 }
 
 // Extension is a function that wraps a new layer of business logic
@@ -111,4 +112,30 @@ func (b *Business) Delete(ctx context.Context, actorID uuid.UUID, usr User) erro
 	}
 
 	return nil
+}
+
+// QueryByEmail finds the user by a specified user email.
+func (b *Business) QueryByEmail(ctx context.Context, email mail.Address) (User, error) {
+	user, err := b.storer.QueryByEmail(ctx, email)
+	if err != nil {
+		return User{}, fmt.Errorf("query: email[%s]: %w", email, err)
+	}
+
+	return user, nil
+}
+
+// Authenticate finds a user by their email and verifies their password. On
+// success it returns a Claims User representing this user. The claims can be
+// used to generate a token for future authentication.
+func (b *Business) Authenticate(ctx context.Context, email mail.Address, password string) (User, error) {
+	usr, err := b.QueryByEmail(ctx, email)
+	if err != nil {
+		return User{}, fmt.Errorf("query: email[%s]: %w", email, err)
+	}
+
+	if err := bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(password)); err != nil {
+		return User{}, fmt.Errorf("comparehashandpassword: %w", ErrAuthenticationFailure)
+	}
+
+	return usr, nil
 }

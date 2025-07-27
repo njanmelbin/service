@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/mail"
 	"service/business/domain/userbus"
 	"service/business/sdk/sqldb"
 	"service/foundation/logger"
@@ -54,4 +55,31 @@ func (s *Store) Delete(ctx context.Context, usr userbus.User) error {
 	}
 
 	return nil
+}
+
+// QueryByEmail gets the specified user from the database by email.
+func (s *Store) QueryByEmail(ctx context.Context, email mail.Address) (userbus.User, error) {
+	data := struct {
+		Email string `db:"email"`
+	}{
+		Email: email.Address,
+	}
+
+	const q = `
+	SELECT
+        user_id, name, email, password_hash, roles, department, enabled, date_created, date_updated
+	FROM
+		users
+	WHERE
+		email = :email`
+
+	var dbUsr user
+	if err := sqldb.NamedQueryStruct(ctx, s.log, s.db, q, data, &dbUsr); err != nil {
+		if errors.Is(err, sqldb.ErrDBNotFound) {
+			return userbus.User{}, fmt.Errorf("db: %w", userbus.ErrNotFound)
+		}
+		return userbus.User{}, fmt.Errorf("db: %w", err)
+	}
+
+	return toBusUser(dbUsr)
 }

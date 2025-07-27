@@ -2,6 +2,7 @@ package userotel
 
 import (
 	"context"
+	"net/mail"
 	"service/business/domain/userbus"
 	"service/foundation/otel"
 
@@ -44,4 +45,20 @@ func (ext *Extension) Delete(ctx context.Context, actorID uuid.UUID, usr userbus
 	}
 
 	return nil
+}
+
+// QueryByEmail applies otel to the user query by email process.
+func (ext *Extension) QueryByEmail(ctx context.Context, email mail.Address) (userbus.User, error) {
+	ctx, span := otel.AddSpan(ctx, "business.userbus.querybyemail")
+	defer span.End()
+
+	return ext.bus.QueryByEmail(ctx, email)
+}
+
+// Authenticate applies otel to the user authentication process.
+func (ext *Extension) Authenticate(ctx context.Context, email mail.Address, password string) (userbus.User, error) {
+	ctx, span := otel.AddSpan(ctx, "business.userbus.authenticate")
+	defer span.End()
+
+	return ext.bus.Authenticate(ctx, email, password)
 }

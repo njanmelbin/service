@@ -8,6 +8,8 @@ import (
 	"service/app/sdk/auth"
 	"service/app/sdk/authclient"
 	"service/app/sdk/errs"
+	"service/business/domain/userbus"
+	"service/business/types/role"
 	"service/foundation/web"
 	"strings"
 	"time"
@@ -65,27 +67,32 @@ func Bearer(ath *auth.Auth) web.MidFunc {
 }
 
 // Basic processes basic authentication logic.
-func Basic(ath *auth.Auth) web.MidFunc {
+func Basic(ath *auth.Auth, userBus userbus.ExtBusiness) web.MidFunc {
 	m := func(next web.HandlerFunc) web.HandlerFunc {
 		h := func(ctx context.Context, r *http.Request) web.Encoder {
-			email, _, ok := parseBasicAuth(r.Header.Get("authorization"))
+			email, pass, ok := parseBasicAuth(r.Header.Get("authorization"))
 			if !ok {
 				return errs.Newf(errs.Unauthenticated, "invalid basic auth")
 			}
 
-			_, err := mail.ParseAddress(email)
+			addr, err := mail.ParseAddress(email)
+			if err != nil {
+				return errs.New(errs.Unauthenticated, err)
+			}
+
+			usr, err := userBus.Authenticate(ctx, *addr, pass)
 			if err != nil {
 				return errs.New(errs.Unauthenticated, err)
 			}
 
 			claims := auth.Claims{
 				RegisteredClaims: jwt.RegisteredClaims{
-					Subject:   "5cf37266-3473-4006-984f-9325122678b7",
+					Subject:   usr.ID.String(),
 					Issuer:    ath.Issuer(),
 					ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(8760 * time.Hour)),
 					IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 				},
-				Roles: []string{"USER"},
+				Roles: role.ParseToString(usr.Roles),
 			}
 
 			subjectID, err := uuid.Parse(claims.Subject)

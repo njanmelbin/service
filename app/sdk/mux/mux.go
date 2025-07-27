@@ -5,6 +5,7 @@ import (
 	"service/app/sdk/auth"
 	"service/app/sdk/authclient"
 	"service/app/sdk/mid"
+	"service/business/domain/userbus"
 	"service/foundation/logger"
 	"service/foundation/web"
 
@@ -22,11 +23,16 @@ type SalesConfig struct {
 	AuthClient *authclient.Client
 }
 
+type BusConfig struct {
+	UserBus userbus.ExtBusiness
+}
+
 // Config contains all the mandatory systems required by handlers.
 type Config struct {
 	Build       string
 	Log         *logger.Logger
 	Shutdown    chan os.Signal
+	BusConfig   BusConfig
 	AuthConfig  AuthConfig
 	SalesConfig SalesConfig
 	DB          *sqlx.DB
