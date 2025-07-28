@@ -13,6 +13,9 @@ import (
 	"service/app/sdk/auth"
 	"service/app/sdk/debug"
 	"service/app/sdk/mux"
+	"service/business/domain/userbus"
+	"service/business/domain/userbus/stores/userdb"
+	"service/business/sdk/delegate"
 	"service/business/sdk/sqldb"
 	"service/foundation/keystore"
 	"service/foundation/logger"
@@ -136,6 +139,12 @@ func run(ctx context.Context, log *logger.Logger) error {
 	defer db.Close()
 
 	// -------------------------------------------------------------------------
+	// Create Business Packages
+
+	delegate := delegate.New(log)
+	userBus := userbus.NewBusiness(log, delegate, userdb.NewStore(log, db))
+
+	// -------------------------------------------------------------------------
 	// Initialize authentication support
 
 	log.Info(ctx, "startup", "status", "initializing authentication support")
@@ -213,10 +222,13 @@ func run(ctx context.Context, log *logger.Logger) error {
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 
 	cfgMux := mux.Config{
-		Build:    cfg.Build,
-		Log:      log,
-		DB:       db,
-		Tracer:   tracer,
+		Build:  cfg.Build,
+		Log:    log,
+		DB:     db,
+		Tracer: tracer,
+		BusConfig: mux.BusConfig{
+			UserBus: userBus,
+		},
 		Shutdown: shutdown,
 		AuthConfig: mux.AuthConfig{
 			Auth: ath,

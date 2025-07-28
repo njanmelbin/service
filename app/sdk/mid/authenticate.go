@@ -3,6 +3,7 @@ package mid
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/mail"
 	"service/app/sdk/auth"
@@ -79,12 +80,13 @@ func Basic(ath *auth.Auth, userBus userbus.ExtBusiness) web.MidFunc {
 			if err != nil {
 				return errs.New(errs.Unauthenticated, err)
 			}
+			fmt.Println(addr, pass)
 
 			usr, err := userBus.Authenticate(ctx, *addr, pass)
 			if err != nil {
 				return errs.New(errs.Unauthenticated, err)
 			}
-
+			fmt.Println(usr)
 			claims := auth.Claims{
 				RegisteredClaims: jwt.RegisteredClaims{
 					Subject:   usr.ID.String(),
