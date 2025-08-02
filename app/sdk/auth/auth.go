@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"service/business/domain/userbus"
 	"service/foundation/logger"
 	"strings"
 
@@ -35,12 +36,14 @@ type KeyLookup interface {
 
 type Config struct {
 	Log       *logger.Logger
+	UserBus   userbus.ExtBusiness
 	KeyLookup KeyLookup
 	Issuer    string
 }
 
 type Auth struct {
 	keyLookup KeyLookup
+	userBus   userbus.ExtBusiness
 	method    jwt.SigningMethod
 	parser    *jwt.Parser
 	issuer    string
