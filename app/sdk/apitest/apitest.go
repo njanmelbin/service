@@ -2,12 +2,19 @@ package apitest
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/mail"
 	"service/app/sdk/auth"
+	"service/business/domain/userbus"
 	"service/business/sdk/dbtest"
+	"service/business/types/role"
 	"testing"
+	"time"
+
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type testOption struct {
@@ -86,4 +93,33 @@ func (at *Test) Run(t *testing.T, table []Table, testName string, options ...Opt
 
 		t.Run(testName+"-"+tt.Name, f)
 	}
+}
+
+// =============================================================================
+
+// Token generates an authenticated token for a user.
+func Token(userBus userbus.ExtBusiness, ath *auth.Auth, email string) string {
+	addr, _ := mail.ParseAddress(email)
+
+	dbUsr, err := userBus.QueryByEmail(context.Background(), *addr)
+	if err != nil {
+		return ""
+	}
+
+	claims := auth.Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   dbUsr.ID.String(),
+			Issuer:    ath.Issuer(),
+			ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+		},
+		Roles: role.ParseToString(dbUsr.Roles),
+	}
+
+	token, err := ath.GenerateToken(kid, claims)
+	if err != nil {
+		return ""
+	}
+
+	return token
 }
