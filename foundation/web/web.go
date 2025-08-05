@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
-	"github.com/google/uuid"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -61,12 +61,10 @@ func (a *App) HandleFunc(method string, group string, path string, handler Handl
 	handler = wrapMiddleware(a.mw, handler)
 
 	h := func(w http.ResponseWriter, r *http.Request) {
-		v := Values{
-			TraceID: uuid.NewString(),
-			Now:     time.Now().UTC(),
-		}
+		ctx := setTracer(r.Context(), a.tracer)
+		ctx = setWriter(ctx, w)
 
-		ctx := SetValues(r.Context(), &v)
+		otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(w.Header()))
 		resp := handler(ctx, r)
 
 		if err := Respond(ctx, w, resp); err != nil {

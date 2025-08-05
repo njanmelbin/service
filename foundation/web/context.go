@@ -2,58 +2,45 @@ package web
 
 import (
 	"context"
-	"time"
+	"net/http"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ctxKey int
 
-const key ctxKey = 1
+const (
+	tracerKey ctxKey = iota + 1
+	writerKey
+)
 
-type Values struct {
-	TraceID    string
-	Now        time.Time
-	StatusCode int
+func setTracer(ctx context.Context, tracer trace.Tracer) context.Context {
+	return context.WithValue(ctx, tracerKey, tracer)
 }
 
-func SetValues(ctx context.Context, v *Values) context.Context {
-	return context.WithValue(ctx, key, v)
-}
-
-func GetValues(ctx context.Context) *Values {
-	v, ok := ctx.Value(key).(*Values)
-
-	if !ok {
-		return &Values{
-			TraceID: "00000000-0000-0000-0000-000000000000",
-			Now:     time.Now(),
-		}
+func addSpan(ctx context.Context, spanName string, keyValues ...attribute.KeyValue) (context.Context, trace.Span) {
+	v, ok := ctx.Value(tracerKey).(trace.Tracer)
+	if !ok || v == nil {
+		return ctx, trace.SpanFromContext(ctx)
 	}
+
+	ctx, span := v.Start(ctx, spanName)
+	span.SetAttributes(keyValues...)
+
+	return ctx, span
+}
+
+func setWriter(ctx context.Context, w http.ResponseWriter) context.Context {
+	return context.WithValue(ctx, writerKey, w)
+}
+
+// GetWriter returns the underlying writer for the request.
+func GetWriter(ctx context.Context) http.ResponseWriter {
+	v, ok := ctx.Value(writerKey).(http.ResponseWriter)
+	if !ok {
+		return nil
+	}
+
 	return v
-}
-
-func GetTraceID(ctx context.Context) string {
-	v, ok := ctx.Value(key).(*Values)
-	if !ok {
-		return "00000000-0000-0000-0000-000000000000"
-	}
-	return v.TraceID
-}
-
-// GetTime returns the time from the context.
-func GetTime(ctx context.Context) time.Time {
-	v, ok := ctx.Value(key).(*Values)
-	if !ok {
-		return time.Now()
-	}
-	return v.Now
-}
-
-// SetStatusCode sets the status code back into the context.
-func SetStatusCode(ctx context.Context, statusCode int) {
-	v, ok := ctx.Value(key).(*Values)
-	if !ok {
-		return
-	}
-
-	v.StatusCode = statusCode
 }
