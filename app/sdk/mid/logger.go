@@ -2,24 +2,43 @@ package mid
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
+	"service/app/sdk/errs"
 	"service/foundation/logger"
 	"service/foundation/web"
+
 	"time"
 )
 
 func Logger(log *logger.Logger) web.MidFunc {
 	m := func(handler web.HandlerFunc) web.HandlerFunc {
 		h := func(ctx context.Context, r *http.Request) web.Encoder {
-			v := web.GetValues(ctx)
+			now := time.Now()
+
+			path := r.URL.Path
+			if r.URL.RawQuery != "" {
+				path = fmt.Sprintf("%s?%s", path, r.URL.RawQuery)
+			}
 
 			log.Info(ctx, "request started", "method", r.Method, "path", r.URL.Path, "remoteAddr", r.RemoteAddr)
 
-			err := handler(ctx, r)
+			resp := handler(ctx, r)
 
-			log.Info(ctx, "request completed", "method", r.Method, "path", r.URL.Path, "remoteAddr", r.RemoteAddr, "statuscode", v.StatusCode, "since", time.Since(v.Now).String())
+			var statusCode = errs.None
+			if err := isError(resp); err != nil {
+				statusCode = errs.Internal
 
-			return err
+				var v *errs.Error
+				if errors.As(err, &v) {
+					statusCode = v.Code
+				}
+			}
+
+			log.Info(ctx, "request completed", "method", r.Method, "path", r.URL.Path, "remoteAddr", r.RemoteAddr, "statuscode", statusCode, "since", time.Since(now).String())
+
+			return resp
 		}
 		return h
 	}
