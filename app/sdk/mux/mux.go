@@ -1,6 +1,7 @@
 package mux
 
 import (
+	"embed"
 	"os"
 	"service/app/sdk/auth"
 	"service/app/sdk/authclient"
@@ -12,6 +13,20 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.opentelemetry.io/otel/trace"
 )
+
+// StaticSite represents a static site to run.
+type StaticSite struct {
+	react      bool
+	static     embed.FS
+	staticDir  string
+	staticPath string
+}
+
+// Options represent optional parameters.
+type Options struct {
+	corsOrigin []string
+	sites      []StaticSite
+}
 
 // AuthConfig contains auth service specific config.
 type AuthConfig struct {
@@ -45,11 +60,16 @@ type RouteAdder interface {
 	Add(app *web.App, cfg Config)
 }
 
-func WebAPI(cfg Config, routeAdder RouteAdder) *web.App {
+func WebAPI(cfg Config, routeAdder RouteAdder, options ...func(opts *Options)) *web.App {
 	mux := web.New(cfg.Shutdown, cfg.Tracer, mid.Otel(cfg.Tracer),
 		mid.Logger(cfg.Log), mid.Errors(cfg.Log), mid.Metrics(), mid.Panics())
 
 	routeAdder.Add(mux, cfg)
+
+	var opts Options
+	for _, option := range options {
+		option(&opts)
+	}
 
 	return mux
 }
