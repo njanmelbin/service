@@ -20,7 +20,6 @@ import (
 	"service/foundation/keystore"
 	"service/foundation/logger"
 	"service/foundation/otel"
-	"service/foundation/web"
 	"syscall"
 	"time"
 
@@ -33,7 +32,7 @@ func main() {
 	var log *logger.Logger
 
 	traceIDFn := func(ctx context.Context) string {
-		return web.GetTraceID(ctx)
+		return otel.GetTraceID(ctx)
 	}
 
 	log = logger.New(os.Stdout, logger.LevelInfo, "AUTH", traceIDFn)
