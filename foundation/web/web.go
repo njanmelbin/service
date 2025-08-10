@@ -82,3 +82,27 @@ func (a *App) HandleFunc(method string, group string, path string, handler Handl
 
 	a.mux.HandleFunc(finalPath, h)
 }
+
+// HandlerFuncNoMid sets a handler function for a given HTTP method and path
+// pair to the application server mux. Does not include the application
+// middleware or OTEL tracing.
+func (a *App) HandlerFuncNoMid(method string, group string, path string, handlerFunc HandlerFunc) {
+	h := func(w http.ResponseWriter, r *http.Request) {
+		ctx := setWriter(r.Context(), w)
+
+		resp := handlerFunc(ctx, r)
+
+		if err := Respond(ctx, w, resp); err != nil {
+			//a.log(ctx, "web-respond", "ERROR", err)
+			return
+		}
+	}
+
+	finalPath := path
+	if group != "" {
+		finalPath = "/" + group + path
+	}
+	finalPath = fmt.Sprintf("%s %s", method, finalPath)
+
+	a.mux.HandleFunc(finalPath, h)
+}
