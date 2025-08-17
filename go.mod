@@ -1,9 +1,8 @@
 module service
 
-go 1.24.3
+go 1.25
 
 require (
-	github.com/ardanlabs/conf v1.5.0
 	github.com/ardanlabs/conf/v3 v3.7.2
 	github.com/ardanlabs/darwin/v3 v3.3.1
 	github.com/arl/statsviz v0.6.0
