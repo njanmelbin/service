@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/mail"
 	"service/business/sdk/delegate"
+	"service/business/sdk/sqldb"
 	"service/foundation/logger"
 
 	"time"
@@ -21,6 +22,7 @@ var (
 )
 
 type Storer interface {
+	NewWithTx(tx sqldb.CommitRollbacker) (Storer, error)
 	Create(ctx context.Context, usr User) error
 	// Update(ctx context.Context, usr User) error
 	Delete(ctx context.Context, usr User) error
@@ -34,7 +36,7 @@ type Storer interface {
 // ExtBusiness interface provides support for extensions that wrap extra functionality
 // around the core busines logic.
 type ExtBusiness interface {
-	//NewWithTx(tx sqldb.CommitRollbacker) (ExtBusiness, error)
+	NewWithTx(tx sqldb.CommitRollbacker) (ExtBusiness, error)
 	Create(ctx context.Context, actorID uuid.UUID, nu NewUser) (User, error)
 	// Update(ctx context.Context, actorID uuid.UUID, usr User, uu UpdateUser) (User, error)
 	Delete(ctx context.Context, actorID uuid.UUID, usr User) error
@@ -70,6 +72,23 @@ func NewBusiness(log *logger.Logger, delegate *delegate.Delegate, storer Storer,
 	}
 
 	return b
+}
+
+// NewWithTx constructs a new business value that will use the
+// specified transaction in any store related calls.
+func (b *Business) NewWithTx(tx sqldb.CommitRollbacker) (ExtBusiness, error) {
+	storer, err := b.storer.NewWithTx(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	bus := Business{
+		log:      b.log,
+		delegate: b.delegate,
+		storer:   storer,
+	}
+
+	return &bus, nil
 }
 
 func (b *Business) Create(ctx context.Context, actorID uuid.UUID, nu NewUser) (User, error) {

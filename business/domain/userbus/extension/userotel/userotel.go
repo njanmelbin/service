@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/mail"
 	"service/business/domain/userbus"
+	"service/business/sdk/sqldb"
 	"service/foundation/otel"
 
 	"github.com/google/uuid"
@@ -20,6 +21,11 @@ func NewExtension() userbus.Extension {
 			bus: bus,
 		}
 	}
+}
+
+// NewWithTx does not apply auditing.
+func (ext *Extension) NewWithTx(tx sqldb.CommitRollbacker) (userbus.ExtBusiness, error) {
+	return ext.bus.NewWithTx(tx)
 }
 
 // Create applies otel to the user creation process.
