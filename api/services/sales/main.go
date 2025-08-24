@@ -14,6 +14,7 @@ import (
 	"service/app/sdk/debug"
 	"service/app/sdk/mux"
 	"service/business/domain/userbus"
+	"service/business/domain/userbus/stores/usercache"
 	"service/business/domain/userbus/stores/userdb"
 	"service/business/sdk/delegate"
 	"service/business/sdk/sqldb"
@@ -134,7 +135,7 @@ func run(ctx context.Context, log *logger.Logger) error {
 	// -------------------------------------------------------------------------
 	// Create Business Packages
 
-	userStorage := userdb.NewStore(log, db)
+	userStorage := usercache.NewStore(log, userdb.NewStore(log, db), time.Minute)
 
 	delegate := delegate.New(log)
 	userBus := userbus.NewBusiness(log, delegate, userStorage)
